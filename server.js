@@ -36,55 +36,49 @@ app.listen(PORT, () => {
 
 // LOGIN
 app.post("/login", (req, res) => {
-  let adress = req.body.adress;
-  let pass = req.body.pass;
+  const { email, password } = req.body;
 
-  let qr = `SELECT * FROM user WHERE adress = ? AND pass = ?`;
+  const query = `SELECT * FROM user WHERE email = ? AND password = ?`;
 
-  db.query(qr, [adress, pass], (error, results) => {
-    if (!error) {
-      if (results.length > 0) {
-        return res.status(200).send({ message: "Login successful" });
-      } else {
-        return res
-          .status(400)
-          .send({ message: "Incorrect email or password." });
-      }
-    } else {
+  db.query(query, [email, password], (error, results) => {
+    if (error) {
+      console.error("Error in login query:", error);
       return res.status(500).send({ message: "Internal server error" });
+    }
+
+    if (results.length > 0) {
+      return res.status(200).send({ message: "Login successful" });
+    } else {
+      return res.status(400).send({ message: "Incorrect email or password." });
     }
   });
 });
 
 // REGISTER
 app.post("/signup", (req, res) => {
-  let connect = req.body;
-  let query = `SELECT pseudo, adress, phone, pass FROM user WHERE adress = ?`;
+  const { pseudo, email, phone, password } = req.body;
 
-  db.query(query, [connect.adress], (error, results) => {
-    if (!error) {
-      if (results.length <= 0) {
-        let qr = `INSERT INTO user (pseudo, adress, phone, pass) VALUES (?, ?, ?, ?)`;
-        console.log("Data to be inserted:", connect.pseudo, connect.adress, connect.phone, connect.pass);
-        db.query(
-          qr,
-          [connect.pseudo, connect.adress, connect.phone, connect.pass],
-          (error, results) => {
-            if (!error) {
-              return res
-                .status(200)
-                .send({ message: "Registration successful" });
-            } else {
-              console.error("Error inserting data:", error); 
-              return res.status(500).send({ message: "Registration failed" });
-            }
-          }
-        );
-      } else {
-        return res.status(400).json({ message: "Account already exists." });
-      }
+  const query = `SELECT pseudo, email, phone, password FROM user WHERE email = ?`;
+
+  db.query(query, [email], (error, results) => {
+    if (error) {
+      console.error("Error in signup query:", error);
+      return res.status(500).send({ message: "Database error" });
+    }
+
+    if (results.length > 0) {
+      return res.status(400).send({ message: "Account already exists." });
     } else {
-      return res.status(500).json({ message: "Database error" });
+      const insertQuery = `INSERT INTO user (pseudo, email, phone, password) VALUES (?, ?, ?, ?)`;
+
+      db.query(insertQuery, [pseudo, email, phone, password], (error, results) => {
+        if (error) {
+          console.error("Error inserting data:", error); 
+          return res.status(500).send({ message: "Registration failed" });
+        } else {
+          return res.status(200).send({ message: "Registration successful" });
+        }
+      });
     }
   });
 });
